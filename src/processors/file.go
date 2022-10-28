@@ -3,7 +3,6 @@ package processors
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"os"
 )
 
@@ -25,15 +24,21 @@ func (processor *FileProcessor) OpenFile() error {
 		return errors.New("filename is not set")
 	}
 
-	//TODO: валидация размера файла + проверка что файл существует
-	file, err := os.Open(processor.filename)
-	processor.Reader = bufio.NewReader(file)
+	var file *os.File = nil
+	var err error = nil
 
-	defer file.Close() // TODO: обработать закрытие
+	//TODO: валидация размера файла
+	if _, err := os.Stat(processor.filename); errors.Is(err, os.ErrNotExist) {
+		file, err = os.Create(processor.filename)
+	} else {
+		file, err = os.Open(processor.filename)
+	}
 
 	if err != nil {
-		return errors.New(fmt.Sprintf("error: %s\n", err.Error()))
+		return err
 	}
+
+	processor.Reader = bufio.NewReader(file)
 
 	return nil
 }
