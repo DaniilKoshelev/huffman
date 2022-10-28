@@ -1,5 +1,0 @@
-package encoder
-
-func Encode() {
-
-}

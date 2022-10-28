@@ -1,46 +1,20 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"huffman/src/decoder"
-	"huffman/src/encoder"
+	"huffman/src/flow"
 	"os"
 )
 
-const (
-	ModeEncode = "encode"
-	ModeDecode = "decode"
-)
-
 func main() {
-	modeFlag := flag.String("mode", ModeEncode, "specify work mode")
-	// TODO: сделать без указания флагов
-	inputFilenameFlag := flag.String("i", "", "specify input filename")
-	outputFilenameFlag := flag.String("o", "", "specify output filename")
-	flag.Parse()
+	programFlow := flow.NewFlow()
 
-	mode := *modeFlag
-	inputFilename := *inputFilenameFlag
-	outputFilename := *outputFilenameFlag
+	err := programFlow.Init()
 
-	// TODO: перенести из main, сделать на error
-	if mode == ModeDecode {
-		decoder.Decode()
-	} else if mode == ModeEncode {
-		encoder.Encode()
-	} else {
-		fmt.Printf("error: invalid mode - %s\n", mode)
+	if err != nil {
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 
-	if inputFilename == "" {
-		fmt.Println("error: input filename not specified")
-		os.Exit(2)
-	}
-
-	if outputFilename == "" {
-		outputFilename = inputFilename + ".out" // TODO: убрать хардкод
-	}
-
+	os.Exit(0)
 }
