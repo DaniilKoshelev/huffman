@@ -17,10 +17,11 @@ func NewFlow() *Flow {
 
 func (flow *Flow) Init() error {
 	flow.FlagProcessor = processors.NewFlagProcessor()
-	flow.inputFileProcessor = processors.NewFileProcessor()
-	flow.outputFileProcessor = processors.NewFileProcessor()
 
 	err := flow.ProcessInput()
+
+	flow.inputFileProcessor = processors.NewFileProcessor(flow.InputFilename)
+	flow.outputFileProcessor = processors.NewFileProcessor(flow.OutputFilename)
 
 	if err != nil {
 		return err
@@ -34,7 +35,7 @@ func (flow *Flow) Init() error {
 }
 
 func (flow *Flow) startEncode() error {
-	err := flow.inputFileProcessor.OpenFile(flow.InputFilename)
+	err := flow.inputFileProcessor.OpenFile()
 
 	if err != nil {
 		return err
@@ -43,7 +44,7 @@ func (flow *Flow) startEncode() error {
 	encoder := core.NewEncoder(flow.inputFileProcessor.Reader)
 	_ = encoder.BuildTree()
 
-	err = flow.outputFileProcessor.OpenFile(flow.OutputFilename)
+	err = flow.outputFileProcessor.OpenFile()
 
 	if err != nil {
 		return err

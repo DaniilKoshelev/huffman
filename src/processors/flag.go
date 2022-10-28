@@ -50,7 +50,7 @@ func (processor *FlagProcessor) ProcessInput() error {
 	}
 
 	if processor.OutputFilename == "" {
-		processor.OutputFilename = processor.OutputFilename + outFilenamePostfix
+		processor.OutputFilename = processor.InputFilename + outFilenamePostfix
 	}
 
 	return nil

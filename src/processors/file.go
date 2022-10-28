@@ -8,16 +8,25 @@ import (
 )
 
 type FileProcessor struct {
-	Reader *bufio.Reader
+	Reader   *bufio.Reader
+	filename string
 }
 
-func NewFileProcessor() *FileProcessor {
-	return &FileProcessor{}
+func NewFileProcessor(filename string) *FileProcessor {
+	processor := new(FileProcessor)
+
+	processor.filename = filename
+
+	return processor
 }
 
-func (processor *FileProcessor) OpenFile(filename string) error {
-	//TODO: валидация размера файла
-	file, err := os.Open(filename)
+func (processor *FileProcessor) OpenFile() error {
+	if processor.filename == "" {
+		return errors.New("filename is not set")
+	}
+
+	//TODO: валидация размера файла + проверка что файл существует
+	file, err := os.Open(processor.filename)
 	processor.Reader = bufio.NewReader(file)
 
 	defer file.Close() // TODO: обработать закрытие
