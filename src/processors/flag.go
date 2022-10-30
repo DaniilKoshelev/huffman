@@ -43,7 +43,7 @@ func (processor *FlagProcessor) ProcessInput() error {
 	processor.InputFilename = *InputFilenameFlag
 	processor.OutputFilename = *OutputFilenameFlag
 
-	err := processor.ValidateInput()
+	err := processor.validateInput()
 
 	if err != nil {
 		return err
@@ -56,7 +56,15 @@ func (processor *FlagProcessor) ProcessInput() error {
 	return nil
 }
 
-func (processor *FlagProcessor) ValidateInput() error {
+func (processor *FlagProcessor) IsEncodeMode() bool {
+	return processor.mode == modeEncode
+}
+
+func (processor *FlagProcessor) IsDecodeMode() bool {
+	return processor.mode == modeDecode
+}
+
+func (processor *FlagProcessor) validateInput() error {
 	mode := processor.mode
 	InputFilename := processor.InputFilename
 
@@ -69,12 +77,4 @@ func (processor *FlagProcessor) ValidateInput() error {
 	}
 
 	return nil
-}
-
-func (processor *FlagProcessor) IsEncodeMode() bool {
-	return processor.mode == modeEncode
-}
-
-func (processor *FlagProcessor) IsDecodeMode() bool {
-	return processor.mode == modeDecode
 }
