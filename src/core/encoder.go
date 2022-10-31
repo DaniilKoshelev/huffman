@@ -2,6 +2,7 @@ package core
 
 import (
 	"bufio"
+	"bytes"
 	"container/list"
 	"errors"
 	"io"
@@ -14,7 +15,7 @@ type ensemble struct {
 
 type word struct {
 	count int64
-	code  byte
+	code  *bytes.Buffer
 }
 
 type Encoder struct {
@@ -64,7 +65,7 @@ func (encoder *Encoder) countWords() error {
 		if exists {
 			curWord.count++
 		} else {
-			encoder.words[newByte] = &word{1, 0}
+			encoder.words[newByte] = &word{1, nil}
 		}
 	}
 
@@ -136,24 +137,34 @@ func (encoder *Encoder) walkTree() {
 	root := encoder.tree.Front().Value
 
 	rootAbstract, ok := encoder.tree.Front().Value.(*abstractNode)
+	code := new(bytes.Buffer)
 
 	if !ok {
-		root.(*initialNode).getWord().code = 0
+		code.WriteByte('0')
+		root.(*initialNode).getWord().code = code
+
+		return
 	}
 
 	left := rootAbstract.Left
 	right := rootAbstract.Right
 
 	if left != nil {
-		encoder.walkFromNode(left, 1)
+		leftCode := new(bytes.Buffer)
+		leftCode.Write(code.Bytes())
+		leftCode.WriteByte('1')
+		encoder.walkFromNode(left, leftCode)
 	}
 
 	if right != nil {
-		encoder.walkFromNode(right, 0)
+		rightCode := new(bytes.Buffer)
+		rightCode.Write(code.Bytes())
+		rightCode.WriteByte('0')
+		encoder.walkFromNode(right, rightCode)
 	}
 }
 
-func (encoder *Encoder) walkFromNode(node node, code byte) {
+func (encoder *Encoder) walkFromNode(node node, code *bytes.Buffer) {
 	_, ok := node.(*abstractNode)
 
 	if !ok {
@@ -166,15 +177,17 @@ func (encoder *Encoder) walkFromNode(node node, code byte) {
 	right := node.(*abstractNode).Right
 
 	if left != nil {
-		code = code << 1
-		code |= 1
-		encoder.walkFromNode(left, code)
+		leftCode := new(bytes.Buffer)
+		leftCode.Write(code.Bytes())
+		leftCode.WriteByte('1')
+		encoder.walkFromNode(left, leftCode)
 	}
 
 	if right != nil {
-		code = code << 1
-		code |= 0
-		encoder.walkFromNode(right, code)
+		rightCode := new(bytes.Buffer)
+		rightCode.Write(code.Bytes())
+		rightCode.WriteByte('0')
+		encoder.walkFromNode(right, rightCode)
 	}
 }
 
