@@ -26,7 +26,7 @@ func TestEncoderBuildTree(t *testing.T) {
 
 		_ = encoder.BuildTree()
 
-		for encoderByte, encoderWord := range encoder.ensemble.words {
+		for encoderByte, encoderWord := range encoder.words {
 			if encoderWord == nil {
 				continue
 			}

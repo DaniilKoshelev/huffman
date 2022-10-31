@@ -11,17 +11,13 @@ import (
 
 const maxWords = 255
 
-type ensemble struct {
-	words [maxWords]*word
-}
-
 type word struct {
 	count int64
 	code  *bytes.Buffer
 }
 
 type Encoder struct {
-	*ensemble
+	words  [maxWords]*word
 	tree   *list.List
 	reader *bufio.Reader
 }
@@ -29,7 +25,6 @@ type Encoder struct {
 func NewEncoder(reader *bufio.Reader) *Encoder {
 	encoder := new(Encoder)
 	encoder.reader = reader
-	encoder.ensemble = new(ensemble)
 	encoder.tree = list.New()
 
 	return encoder
@@ -99,7 +94,7 @@ func (encoder *Encoder) pushInitialNodes() {
 }
 
 func (encoder *Encoder) compressTree() {
-	for encoder.tree.Len() != 1 { // TODO: check 0
+	for encoder.tree.Len() != 1 {
 		leftElement := encoder.tree.Front()
 		rightElement := leftElement.Next()
 
