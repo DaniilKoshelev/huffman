@@ -9,8 +9,10 @@ import (
 	"sort"
 )
 
+const maxWords = 255
+
 type ensemble struct {
-	words map[byte]*word
+	words [maxWords]*word
 }
 
 type word struct {
@@ -28,7 +30,6 @@ func NewEncoder(reader *bufio.Reader) *Encoder {
 	encoder := new(Encoder)
 	encoder.reader = reader
 	encoder.ensemble = new(ensemble)
-	encoder.ensemble.words = make(map[byte]*word)
 	encoder.tree = list.New()
 
 	return encoder
@@ -60,9 +61,9 @@ func (encoder *Encoder) countWords() error {
 			break
 		}
 
-		curWord, exists := encoder.words[newByte]
+		curWord := encoder.words[newByte]
 
-		if exists {
+		if curWord != nil {
 			curWord.count++
 		} else {
 			encoder.words[newByte] = &word{1, nil}
@@ -79,8 +80,10 @@ func (encoder *Encoder) Encode(ch chan []byte) {
 func (encoder *Encoder) pushInitialNodes() {
 	var words []*word
 
-	for _, Word := range encoder.words {
-		words = append(words, Word)
+	for _, word := range encoder.words {
+		if word != nil {
+			words = append(words, word)
+		}
 	}
 
 	sort.Slice(words, func(i, j int) bool {
@@ -104,8 +107,8 @@ func (encoder *Encoder) compressTree() {
 		right := rightElement.Value.(node)
 
 		newNode := newAbstractNode(left.getCount() + right.getCount())
-		newNode.Left = left
-		newNode.Right = right
+		newNode.left = left
+		newNode.right = right
 
 		encoder.tree.Remove(leftElement)
 		encoder.tree.Remove(rightElement)
@@ -146,8 +149,8 @@ func (encoder *Encoder) walkTree() {
 		return
 	}
 
-	left := rootAbstract.Left
-	right := rootAbstract.Right
+	left := rootAbstract.left
+	right := rootAbstract.right
 
 	if left != nil {
 		leftCode := new(bytes.Buffer)
@@ -173,8 +176,8 @@ func (encoder *Encoder) walkFromNode(node node, code *bytes.Buffer) {
 		return
 	}
 
-	left := node.(*abstractNode).Left
-	right := node.(*abstractNode).Right
+	left := node.(*abstractNode).left
+	right := node.(*abstractNode).right
 
 	if left != nil {
 		leftCode := new(bytes.Buffer)
@@ -197,8 +200,8 @@ type node interface {
 
 type abstractNode struct {
 	count int64 // Количество раз, сколько встретился определенный байт
-	Left  node
-	Right node
+	left  node
+	right node
 }
 
 type initialNode struct {
