@@ -3,6 +3,7 @@ package tree
 import "bytes"
 
 type word struct {
+	value byte
 	count int64
 	code  *bytes.Buffer
 }

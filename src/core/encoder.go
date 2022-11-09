@@ -18,6 +18,9 @@ func NewEncoder(reader *bufio.Reader) (*Encoder, error) {
 	}
 
 	encoder.tree = createdTree
+	packedTree := encoder.tree.Pack()
+	_ = packedTree
+	// TODO:
 
 	return encoder, nil
 }

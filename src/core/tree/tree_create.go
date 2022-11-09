@@ -17,7 +17,7 @@ func Create(reader *bufio.Reader) (*Tree, error) {
 
 	tree.pushInitialNodes()
 	tree.compressTree()
-	tree.walkTree()
+	tree.buildTree()
 
 	return tree, nil
 }
@@ -39,7 +39,7 @@ func (tree *Tree) countWords(reader *bufio.Reader) error {
 		if curWord != nil {
 			curWord.count++
 		} else {
-			tree.words[newByte] = &word{1, nil}
+			tree.words[newByte] = &word{newByte, 1, nil}
 		}
 	}
 
