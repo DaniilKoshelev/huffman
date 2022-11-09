@@ -1,4 +1,4 @@
-package core
+package tree
 
 import (
 	"bufio"
@@ -18,15 +18,13 @@ var buildTreeTests = []buildTreeTest{
 	{"FGGCCCZZZZ", map[byte]string{'F': "011", 'G': "010", 'C': "00", 'Z': "1"}},
 }
 
-func TestEncoderBuildTree(t *testing.T) {
+func TestTreeCreate(t *testing.T) {
 	for _, test := range buildTreeTests {
 		reader := bytes.NewReader([]byte(test.bytes))
 		bufferedReader := bufio.NewReader(reader)
-		encoder := NewEncoder(bufferedReader)
+		createdTree, _ := Create(bufferedReader)
 
-		_ = encoder.BuildTree()
-
-		for encoderByte, encoderWord := range encoder.words {
+		for encoderByte, encoderWord := range createdTree.words {
 			if encoderWord == nil {
 				continue
 			}

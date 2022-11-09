@@ -41,8 +41,11 @@ func (flow *Flow) startEncode() error {
 		return err
 	}
 
-	encoder := core.NewEncoder(flow.inputFileProcessor.Reader)
-	_ = encoder.BuildTree()
+	encoder, err := core.NewEncoder(flow.inputFileProcessor.Reader)
+
+	if err != nil {
+		return err
+	}
 
 	err = flow.outputFileProcessor.OpenFile()
 
