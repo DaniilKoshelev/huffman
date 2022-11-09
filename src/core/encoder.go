@@ -130,35 +130,17 @@ func (encoder *Encoder) compressTree() {
 	}
 }
 
-// TODO: рефакторинг нужен
 func (encoder *Encoder) walkTree() {
 	root := encoder.tree.Front().Value
+	code := new(bytes.Buffer)
 
 	rootAbstract, ok := encoder.tree.Front().Value.(*abstractNode)
-	code := new(bytes.Buffer)
 
 	if !ok {
 		code.WriteByte('0')
 		root.(*initialNode).getWord().code = code
-
-		return
-	}
-
-	left := rootAbstract.left
-	right := rootAbstract.right
-
-	if left != nil {
-		leftCode := new(bytes.Buffer)
-		leftCode.Write(code.Bytes())
-		leftCode.WriteByte('1')
-		encoder.walkFromNode(left, leftCode)
-	}
-
-	if right != nil {
-		rightCode := new(bytes.Buffer)
-		rightCode.Write(code.Bytes())
-		rightCode.WriteByte('0')
-		encoder.walkFromNode(right, rightCode)
+	} else {
+		encoder.walkFromNode(rootAbstract, code)
 	}
 }
 
