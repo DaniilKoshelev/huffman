@@ -1,39 +1,62 @@
 package bitsbuffer
 
-import "io"
+import (
+	"encoding/binary"
+	"io"
+)
+
+const bufferSize = 16
 
 type Buffer struct {
-	currentBit   int8
-	bits         byte
-	whereToFlush io.ByteWriter
+	currentBit int8
+	bits       uint16
+	flusher
 }
 
-func NewBuffer(currentBit int8, bits byte, whereToFlush io.ByteWriter) *Buffer {
-	return &Buffer{currentBit: currentBit, bits: bits, whereToFlush: whereToFlush}
+func (buf *Buffer) Bits() uint16 {
+	return buf.bits
+}
+
+func NewFlushableBuffer(whereToFlush io.Writer) *Buffer {
+	buf := &Buffer{currentBit: 0, bits: 0}
+	buf.flusher = newIoFlusher(buf, whereToFlush)
+
+	return buf
+}
+
+func NewBuffer() *Buffer {
+	buf := &Buffer{currentBit: 0, bits: 0}
+	buf.flusher = newEmptyFlusher(buf)
+
+	return buf
+}
+
+func From(buffer *Buffer) *Buffer {
+	// TODO: скопировать средствами golang
+	newBuffer := new(Buffer)
+
+	newBuffer.bits = buffer.bits
+	newBuffer.currentBit = buffer.currentBit
+	newBuffer.flusher = buffer.flusher
+
+	return newBuffer
 }
 
 func (buf *Buffer) AddByte(byteToAdd byte) *Buffer {
-	currentBitBeforeFlush := buf.currentBit
+	newBuf := NewBuffer()
+	newBuf.currentBit = 7
+	newBuf.bits = uint16(byteToAdd) << 8
 
-	// Splitting byte into two parts
-	l := byteToAdd >> buf.currentBit
-	r := byteToAdd << (8 - buf.currentBit)
-
-	buf.bits |= l
-
-	buf.Flush()
-
-	buf.bits = r
-	buf.currentBit = currentBitBeforeFlush
+	buf.AddFromBuffer(newBuf)
 
 	return buf
 }
 
 func (buf *Buffer) AddZero() *Buffer {
-	buf.bits |= 0 << (7 - buf.currentBit)
+	buf.bits |= 0 << (bufferSize - 1 - buf.currentBit)
 	buf.currentBit++
 
-	if buf.currentBit == 8 {
+	if buf.currentBit == bufferSize {
 		buf.Flush()
 	}
 
@@ -41,10 +64,10 @@ func (buf *Buffer) AddZero() *Buffer {
 }
 
 func (buf *Buffer) AddOne() *Buffer {
-	buf.bits |= 1 << (7 - buf.currentBit)
+	buf.bits |= 1 << (bufferSize - 1 - buf.currentBit)
 	buf.currentBit++
 
-	if buf.currentBit == 8 {
+	if buf.currentBit == bufferSize {
 		buf.Flush()
 	}
 
@@ -58,8 +81,57 @@ func (buf *Buffer) reset() *Buffer {
 	return buf
 }
 
-func (buf *Buffer) Flush() {
-	_ = buf.whereToFlush.WriteByte(buf.bits) // TODO: process error
+func (buf *Buffer) Flush() *Buffer {
+	buf.flusher.FlushBuffer()
 
-	buf.reset()
+	return buf
+}
+
+func (flusher *emptyFlusher) FlushBuffer() {
+	flusher.buf.reset()
+}
+
+func (flusher *ioFlusher) FlushBuffer() {
+	bytes := make([]byte, 2)
+	binary.LittleEndian.PutUint16(bytes, flusher.buf.bits)
+	_, _ = flusher.whereToFlush.Write(bytes) // TODO: process error
+
+	flusher.buf.reset()
+}
+
+func (buf *Buffer) AddFromBuffer(anotherBuf *Buffer) *Buffer {
+	currentBitBeforeFlush := buf.currentBit
+
+	l := anotherBuf.bits >> buf.currentBit
+	r := anotherBuf.bits << (bufferSize - buf.currentBit)
+
+	buf.bits |= l
+
+	buf.Flush()
+
+	buf.bits = r
+	buf.currentBit = currentBitBeforeFlush
+
+	return buf
+}
+
+type flusher interface {
+	FlushBuffer()
+}
+
+type emptyFlusher struct {
+	buf *Buffer
+}
+
+func newEmptyFlusher(buf *Buffer) *emptyFlusher {
+	return &emptyFlusher{buf: buf}
+}
+
+type ioFlusher struct {
+	buf          *Buffer
+	whereToFlush io.Writer
+}
+
+func newIoFlusher(buf *Buffer, whereToFlush io.Writer) *ioFlusher {
+	return &ioFlusher{buf: buf, whereToFlush: whereToFlush}
 }

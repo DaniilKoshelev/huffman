@@ -8,6 +8,8 @@ import (
 
 type FileProcessor struct {
 	Reader   *bufio.Reader
+	Writer   *bufio.Writer
+	file     *os.File
 	filename string
 }
 
@@ -19,7 +21,26 @@ func NewFileProcessor(filename string) *FileProcessor {
 	return processor
 }
 
-func (processor *FileProcessor) OpenFile() error {
+func (processor *FileProcessor) OpenFileToRead() error {
+	if processor.filename == "" {
+		return errors.New("filename is not set")
+	}
+
+	//TODO: валидация размера файла
+	file, err := os.Open(processor.filename)
+
+	if err != nil {
+		return err
+	}
+
+	processor.file = file
+	processor.Reader = bufio.NewReader(file)
+
+	return nil
+}
+
+// OpenFileToWrite TODO: объединить с методом выше
+func (processor *FileProcessor) OpenFileToWrite() error {
 	if processor.filename == "" {
 		return errors.New("filename is not set")
 	}
@@ -38,11 +59,36 @@ func (processor *FileProcessor) OpenFile() error {
 		return err
 	}
 
-	processor.Reader = bufio.NewReader(file)
+	processor.file = file
+	processor.Writer = bufio.NewWriter(file)
 
 	return nil
 }
 
-func (processor *FileProcessor) WriteFromChan(ch chan []byte) {
+func (processor *FileProcessor) ResetCursor() error {
+	_, err := processor.file.Seek(0, 0)
 
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (processor *FileProcessor) CloseFile() error {
+	if processor.Writer != nil {
+		err := processor.Writer.Flush()
+
+		if err != nil {
+			return err
+		}
+	}
+
+	err := processor.file.Close()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

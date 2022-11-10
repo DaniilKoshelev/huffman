@@ -22,19 +22,19 @@ func newTree() *Tree {
 
 func (tree *Tree) buildTree() {
 	root := tree.nodes.Front().Value
-	code := new(bytes.Buffer)
+	code := bitsbuffer.NewBuffer()
 
 	rootAbstract, ok := tree.nodes.Front().Value.(*abstractNode)
 
 	if !ok {
-		code.WriteByte('0')
+		code.AddZero()
 		root.(*initialNode).getWord().code = code
 	} else {
 		tree.buildFromNode(rootAbstract, code)
 	}
 }
 
-func (tree *Tree) buildFromNode(node node, code *bytes.Buffer) {
+func (tree *Tree) buildFromNode(node node, code *bitsbuffer.Buffer) {
 	_, ok := node.(*abstractNode)
 
 	if !ok {
@@ -47,25 +47,23 @@ func (tree *Tree) buildFromNode(node node, code *bytes.Buffer) {
 	right := node.(*abstractNode).right
 
 	if left != nil {
-		leftCode := new(bytes.Buffer)
-		leftCode.Write(code.Bytes())
-		leftCode.WriteByte('1')
+		leftCode := bitsbuffer.From(code)
+		leftCode.AddOne()
 		tree.buildFromNode(left, leftCode)
 	}
 
 	if right != nil {
-		rightCode := new(bytes.Buffer)
-		rightCode.Write(code.Bytes())
-		rightCode.WriteByte('0')
+		rightCode := bitsbuffer.From(code)
+		rightCode.AddZero()
 		tree.buildFromNode(right, rightCode)
 	}
 }
 
-func (tree *Tree) Pack() *bytes.Buffer {
+func (tree *Tree) Pack() (*bytes.Buffer, *bitsbuffer.Buffer) {
 	root := tree.nodes.Front().Value
 	packedTree := new(bytes.Buffer)
 	rootAbstract, ok := tree.nodes.Front().Value.(*abstractNode)
-	buffer := bitsbuffer.NewBuffer(0, 0, packedTree)
+	buffer := bitsbuffer.NewFlushableBuffer(packedTree)
 
 	if !ok {
 		buffer.AddOne()
@@ -74,10 +72,7 @@ func (tree *Tree) Pack() *bytes.Buffer {
 		tree.packFromNode(rootAbstract, buffer)
 	}
 
-	buffer.Flush()
-	// TODO: последний байт используется не полностью
-
-	return packedTree
+	return packedTree, buffer
 }
 
 func (tree *Tree) packFromNode(node node, buffer *bitsbuffer.Buffer) {
@@ -102,4 +97,8 @@ func (tree *Tree) packFromNode(node node, buffer *bitsbuffer.Buffer) {
 	if right != nil {
 		tree.packFromNode(right, buffer)
 	}
+}
+
+func (tree *Tree) GetCode(byteForWord byte) *bitsbuffer.Buffer {
+	return tree.words[byteForWord].code
 }

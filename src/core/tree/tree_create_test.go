@@ -8,14 +8,14 @@ import (
 
 type buildTreeTest struct {
 	bytes string
-	words map[byte]string
+	words map[byte]uint16
 }
 
 var buildTreeTests = []buildTreeTest{
-	{"a", map[byte]string{'a': "0"}},
-	{"ab", map[byte]string{'a': "1", 'b': "0"}},
-	{"abc", map[byte]string{'a': "01", 'b': "00", 'c': "1"}},
-	{"FGGCCCZZZZ", map[byte]string{'F': "011", 'G': "010", 'C': "00", 'Z': "1"}},
+	{"a", map[byte]uint16{'a': 0}},
+	{"ab", map[byte]uint16{'a': 32768, 'b': 0}},
+	{"abc", map[byte]uint16{'a': 16384, 'b': 0, 'c': 32768}},
+	{"FGGCCCZZZZ", map[byte]uint16{'F': 24576, 'G': 16384, 'C': 0, 'Z': 32768}},
 }
 
 func TestTreeCreate(t *testing.T) {
@@ -28,7 +28,7 @@ func TestTreeCreate(t *testing.T) {
 			if encoderWord == nil {
 				continue
 			}
-			actualCode := encoderWord.code.String()
+			actualCode := encoderWord.code.Bits()
 			expectedCode := test.words[byte(encoderByte)]
 
 			if expectedCode != actualCode {
@@ -37,16 +37,3 @@ func TestTreeCreate(t *testing.T) {
 		}
 	}
 }
-
-//type EncodeTest struct {
-//	bytes        string
-//	encodedBytes string
-//}
-//
-//var EncodeTests = []EncodeTest{
-//	{"FGGCCCZZZZ", ""}, 	// 01101001 00000001 111
-//}
-//
-//func TestEncoderEncode(t *testing.T) {
-//
-//}

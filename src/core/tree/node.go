@@ -1,11 +1,13 @@
 package tree
 
-import "bytes"
+import (
+	"huffman/src/core/bitsbuffer"
+)
 
 type word struct {
 	value byte
 	count int64
-	code  *bytes.Buffer
+	code  *bitsbuffer.Buffer
 }
 
 type node interface {

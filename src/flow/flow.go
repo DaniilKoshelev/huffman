@@ -35,28 +35,45 @@ func (flow *Flow) Init() error {
 }
 
 func (flow *Flow) startEncode() error {
-	err := flow.inputFileProcessor.OpenFile()
+	err := flow.inputFileProcessor.OpenFileToRead()
 
 	if err != nil {
 		return err
 	}
 
-	encoder, err := core.NewEncoder(flow.inputFileProcessor.Reader)
+	defer flow.inputFileProcessor.CloseFile() // TODO: fixme
+
+	encoder := core.NewEncoder()
 
 	if err != nil {
 		return err
 	}
 
-	err = flow.outputFileProcessor.OpenFile()
+	err = flow.outputFileProcessor.OpenFileToWrite()
+
+	defer flow.outputFileProcessor.CloseFile() // TODO: fixme
 
 	if err != nil {
 		return err
 	}
 
-	outChan := make(chan []byte) // TODO: check buffered or not
+	err = encoder.Init(flow.inputFileProcessor.Reader)
 
-	go encoder.Encode(outChan)
-	go flow.outputFileProcessor.WriteFromChan(outChan)
+	if err != nil {
+		return err
+	}
+
+	err = flow.inputFileProcessor.ResetCursor()
+
+	if err != nil {
+		return err
+	}
+
+	err = encoder.Encode(flow.inputFileProcessor.Reader, flow.outputFileProcessor.Writer)
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
