@@ -85,16 +85,16 @@ func (tree *Tree) packFromNode(node node, buffer *bitsbuffer.Buffer) {
 		return
 	}
 
-	buffer.AddZero()
-
 	left := node.(*abstractNode).left
 	right := node.(*abstractNode).right
 
 	if left != nil {
+		buffer.AddZero()
 		tree.packFromNode(left, buffer)
 	}
 
 	if right != nil {
+		buffer.AddZero()
 		tree.packFromNode(right, buffer)
 	}
 }

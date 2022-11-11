@@ -18,14 +18,14 @@ func (buf *Buffer) Bits() uint16 {
 }
 
 func NewFlushableBuffer(whereToFlush io.Writer) *Buffer {
-	buf := &Buffer{currentBit: 0, bits: 0}
+	buf := &Buffer{currentBit: -1, bits: 0}
 	buf.flusher = newIoFlusher(buf, whereToFlush)
 
 	return buf
 }
 
 func NewBuffer() *Buffer {
-	buf := &Buffer{currentBit: 0, bits: 0}
+	buf := &Buffer{currentBit: -1, bits: 0}
 	buf.flusher = newEmptyFlusher(buf)
 
 	return buf
@@ -53,7 +53,7 @@ func (buf *Buffer) AddByte(byteToAdd byte) *Buffer {
 }
 
 func (buf *Buffer) AddZero() *Buffer {
-	buf.bits |= 0 << (bufferSize - 1 - buf.currentBit)
+	buf.bits |= 0 << (bufferSize - 1 - buf.currentBit - 1)
 	buf.currentBit++
 
 	if buf.currentBit == bufferSize {
@@ -64,7 +64,7 @@ func (buf *Buffer) AddZero() *Buffer {
 }
 
 func (buf *Buffer) AddOne() *Buffer {
-	buf.bits |= 1 << (bufferSize - 1 - buf.currentBit)
+	buf.bits |= 1 << (bufferSize - 1 - buf.currentBit - 1)
 	buf.currentBit++
 
 	if buf.currentBit == bufferSize {
@@ -92,6 +92,7 @@ func (flusher *emptyFlusher) FlushBuffer() {
 }
 
 func (flusher *ioFlusher) FlushBuffer() {
+	// TODO: !!! ДОБАВИТЬ ПРОВЕРКУ НА CURRENT БИТ, перенести отсюда, должно проверяться только в самом конце (чтобы не писать лишний байт)
 	bytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(bytes, flusher.buf.bits)
 	_, _ = flusher.whereToFlush.Write(bytes) // TODO: process error
@@ -100,17 +101,21 @@ func (flusher *ioFlusher) FlushBuffer() {
 }
 
 func (buf *Buffer) AddFromBuffer(anotherBuf *Buffer) *Buffer {
-	currentBitBeforeFlush := buf.currentBit
-
-	l := anotherBuf.bits >> buf.currentBit
-	r := anotherBuf.bits << (bufferSize - buf.currentBit)
+	currentBitBeforeFlush := buf.currentBit + 1 + anotherBuf.currentBit + 1 - bufferSize - 1
+	l := anotherBuf.bits >> (buf.currentBit + 1)
+	r := anotherBuf.bits << (bufferSize - buf.currentBit - 1)
 
 	buf.bits |= l
 
-	buf.Flush()
+	if buf.currentBit+1+anotherBuf.currentBit+1 >= bufferSize {
+		buf.Flush()
+		buf.bits = r
+		buf.currentBit = currentBitBeforeFlush
 
-	buf.bits = r
-	buf.currentBit = currentBitBeforeFlush
+		return buf
+	}
+
+	buf.currentBit += anotherBuf.currentBit + 1
 
 	return buf
 }
