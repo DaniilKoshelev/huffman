@@ -82,12 +82,12 @@ func (buf *Buffer) AddOne() *Buffer {
 }
 
 func (buf *Buffer) AddBit(bit uint8) *Buffer {
-	buf.bits |= uint16(bit) << (bufferSize - 1 - buf.currentBit - 1)
-	buf.currentBit++
-
-	if buf.currentBit == bufferSize {
+	if buf.currentBit == bufferSize-1 {
 		buf.flush()
 	}
+
+	buf.bits |= uint16(bit) << (bufferSize - 1 - buf.currentBit - 1)
+	buf.currentBit++
 
 	return buf
 }
