@@ -9,8 +9,10 @@ import (
 const maxWords = 255
 
 type Tree struct {
-	Words [maxWords]*word
-	nodes *list.List
+	Words            [maxWords]*word
+	nodes            *list.List
+	nodesCount       uint8
+	alreadyReadNodes uint8
 }
 
 func newTree() *Tree {

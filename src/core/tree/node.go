@@ -33,11 +33,19 @@ func (node *initialNode) setWord(word *word) {
 	node.word = word
 }
 
-func newInitialNode(p int64) *initialNode {
+func newInitialNode() *initialNode {
+	return &initialNode{}
+}
+
+func newAbstractNode(left node, right node) *abstractNode {
+	return &abstractNode{left: left, right: right}
+}
+
+func newInitialNodeCount(p int64) *initialNode {
 	return &initialNode{count: p}
 }
 
-func newAbstractNode(p int64) *abstractNode {
+func newAbstractNodeCount(p int64) *abstractNode {
 	return &abstractNode{count: p}
 }
 

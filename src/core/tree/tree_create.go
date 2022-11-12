@@ -60,7 +60,7 @@ func (tree *Tree) pushInitialNodes() {
 	})
 
 	for _, word := range words {
-		newNode := newInitialNode(word.count)
+		newNode := newInitialNodeCount(word.count)
 		newNode.setWord(word)
 
 		tree.nodes.PushBack(newNode)
@@ -75,7 +75,7 @@ func (tree *Tree) compressTree() {
 		left := leftElement.Value.(node)
 		right := rightElement.Value.(node)
 
-		newNode := newAbstractNode(left.getCount() + right.getCount())
+		newNode := newAbstractNodeCount(left.getCount() + right.getCount())
 		newNode.left = left
 		newNode.right = right
 

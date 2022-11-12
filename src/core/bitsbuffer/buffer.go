@@ -2,6 +2,8 @@ package bitsbuffer
 
 import (
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"io"
 )
 
@@ -12,10 +14,17 @@ type Buffer struct {
 	currentBit int8
 	bits       uint16
 	flusher
+	reader
 }
 
 func (buf *Buffer) Bits() uint16 {
 	return buf.bits
+}
+
+func (buf *Buffer) SetIoReader(whereToReadFrom io.ByteReader) *Buffer {
+	buf.reader = newIoReader(buf, whereToReadFrom)
+
+	return buf
 }
 
 func NewEmptyFlushableBuffer(whereToFlush io.Writer) *Buffer {
@@ -121,7 +130,7 @@ func (flusher *ioFlusher) flushBuffer() {
 }
 
 func (flusher *ioFlusher) flushBufferFinal() {
-	if flusher.buf.currentBit == bufferEmpty {
+	if flusher.buf.isEmpty() {
 		// do nothing
 	} else if flusher.buf.currentBit <= 7 {
 		byteToWrite := byte(flusher.buf.bits >> 8)
@@ -165,6 +174,31 @@ type flusher interface {
 	flushBufferFinal()
 }
 
+type reader interface {
+	read() error
+}
+
+type ioReader struct {
+	buf             *Buffer
+	whereToReadFrom io.ByteReader
+}
+
+func newIoReader(buf *Buffer, whereToReadFrom io.ByteReader) *ioReader {
+	return &ioReader{buf: buf, whereToReadFrom: whereToReadFrom}
+}
+
+func (reader *ioReader) read() error {
+	newByte, err := reader.whereToReadFrom.ReadByte()
+
+	if err != nil {
+		return err
+	}
+
+	reader.buf.AddByte(newByte)
+
+	return nil
+}
+
 type emptyFlusher struct {
 	buf *Buffer
 }
@@ -180,4 +214,42 @@ type ioFlusher struct {
 
 func newIoFlusher(buf *Buffer, whereToFlush io.Writer) *ioFlusher {
 	return &ioFlusher{buf: buf, whereToFlush: whereToFlush}
+}
+
+func (buf *Buffer) isEmpty() bool {
+	return buf.currentBit == bufferEmpty
+}
+
+func (buf *Buffer) ReadBit() (uint8, error) {
+	if buf.isEmpty() {
+		err := buf.read()
+
+		if err != nil {
+			return 0, errors.New(fmt.Sprintln("error: reading from an empty buffer"))
+		}
+	}
+
+	bit := uint8((buf.bits >> 15) & 1)
+
+	buf.bits <<= 1
+	buf.currentBit--
+
+	return bit, nil
+}
+
+func (buf *Buffer) ReadByte() (uint8, error) {
+	if buf.isEmpty() || buf.currentBit < 7 {
+		err := buf.read()
+
+		if err != nil {
+			return 0, errors.New(fmt.Sprintln("error: reading from an empty buffer"))
+		}
+	}
+
+	byteToReturn := uint8(buf.bits >> 8)
+
+	buf.bits <<= 8
+	buf.currentBit -= 8
+
+	return byteToReturn, nil
 }
