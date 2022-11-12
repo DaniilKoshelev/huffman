@@ -6,6 +6,7 @@ import (
 )
 
 const bufferSize = 16
+const bufferEmpty = -1
 
 type Buffer struct {
 	currentBit int8
@@ -17,15 +18,22 @@ func (buf *Buffer) Bits() uint16 {
 	return buf.bits
 }
 
-func NewFlushableBuffer(whereToFlush io.Writer) *Buffer {
-	buf := &Buffer{currentBit: -1, bits: 0}
+func NewEmptyFlushableBuffer(whereToFlush io.Writer) *Buffer {
+	buf := &Buffer{currentBit: bufferEmpty, bits: 0}
 	buf.flusher = newIoFlusher(buf, whereToFlush)
 
 	return buf
 }
 
-func NewBuffer() *Buffer {
-	buf := &Buffer{currentBit: -1, bits: 0}
+func NewBuffer(currentBit int8, bits uint16) *Buffer {
+	buf := &Buffer{currentBit: currentBit, bits: bits}
+	buf.flusher = newEmptyFlusher(buf)
+
+	return buf
+}
+
+func NewEmptyBuffer() *Buffer {
+	buf := &Buffer{currentBit: bufferEmpty, bits: 0}
 	buf.flusher = newEmptyFlusher(buf)
 
 	return buf
@@ -43,7 +51,7 @@ func From(buffer *Buffer) *Buffer {
 }
 
 func (buf *Buffer) AddByte(byteToAdd byte) *Buffer {
-	newBuf := NewBuffer()
+	newBuf := NewEmptyBuffer()
 	newBuf.currentBit = 7
 	newBuf.bits = uint16(byteToAdd) << 8
 
@@ -57,7 +65,7 @@ func (buf *Buffer) AddZero() *Buffer {
 	buf.currentBit++
 
 	if buf.currentBit == bufferSize {
-		buf.Flush()
+		buf.flush()
 	}
 
 	return buf
@@ -68,7 +76,7 @@ func (buf *Buffer) AddOne() *Buffer {
 	buf.currentBit++
 
 	if buf.currentBit == bufferSize {
-		buf.Flush()
+		buf.flush()
 	}
 
 	return buf
@@ -76,27 +84,54 @@ func (buf *Buffer) AddOne() *Buffer {
 
 func (buf *Buffer) reset() *Buffer {
 	buf.bits = 0
-	buf.currentBit = 0
+	buf.currentBit = bufferEmpty
 
 	return buf
 }
 
+// Эффективный внутренний флаш только при переполнении буфера (флаш 2 байт сразу)
+func (buf *Buffer) flush() *Buffer {
+	buf.flusher.flushBuffer()
+
+	return buf
+}
+
+// Flush Неэффективный флаш, должен использоваться однократно, когда заканчиваем работу с буфером
+// Пишет 0, 1, 2 байта, в зависимости от заполненности
 func (buf *Buffer) Flush() *Buffer {
-	buf.flusher.FlushBuffer()
+	buf.flusher.flushBufferFinal()
 
 	return buf
 }
 
-func (flusher *emptyFlusher) FlushBuffer() {
+func (flusher *emptyFlusher) flushBuffer() {
 	flusher.buf.reset()
 }
 
-func (flusher *ioFlusher) FlushBuffer() {
-	// TODO: !!! ДОБАВИТЬ ПРОВЕРКУ НА CURRENT БИТ, перенести отсюда, должно проверяться только в самом конце (чтобы не писать лишний байт)
-	// не писать пустой бафер
+func (flusher *emptyFlusher) flushBufferFinal() {
+	flusher.buf.reset()
+}
+
+func (flusher *ioFlusher) flushBuffer() {
 	bytes := make([]byte, 2)
 	binary.BigEndian.PutUint16(bytes, flusher.buf.bits)
 	_, _ = flusher.whereToFlush.Write(bytes) // TODO: process error
+
+	flusher.buf.reset()
+}
+
+func (flusher *ioFlusher) flushBufferFinal() {
+	if flusher.buf.currentBit == bufferEmpty {
+		// do nothing
+	} else if flusher.buf.currentBit <= 7 {
+		byteToWrite := byte(flusher.buf.bits >> 8)
+		bytes := []byte{byteToWrite}
+		_, _ = flusher.whereToFlush.Write(bytes) // TODO: process error
+	} else {
+		bytes := make([]byte, 2)
+		binary.BigEndian.PutUint16(bytes, flusher.buf.bits)
+		_, _ = flusher.whereToFlush.Write(bytes) // TODO: process error
+	}
 
 	flusher.buf.reset()
 }
@@ -109,7 +144,7 @@ func (buf *Buffer) AddFromBuffer(anotherBuf *Buffer) *Buffer {
 	buf.bits |= l
 
 	if buf.currentBit+1+anotherBuf.currentBit+1 >= bufferSize {
-		buf.Flush()
+		buf.flush()
 		buf.bits = r
 		buf.currentBit = currentBitBeforeFlush
 
@@ -121,8 +156,13 @@ func (buf *Buffer) AddFromBuffer(anotherBuf *Buffer) *Buffer {
 	return buf
 }
 
+func (buf *Buffer) Length() int8 {
+	return buf.currentBit + 1
+}
+
 type flusher interface {
-	FlushBuffer()
+	flushBuffer()
+	flushBufferFinal()
 }
 
 type emptyFlusher struct {

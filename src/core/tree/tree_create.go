@@ -34,12 +34,12 @@ func (tree *Tree) countWords(reader *bufio.Reader) error {
 			break
 		}
 
-		curWord := tree.words[newByte]
+		curWord := tree.Words[newByte]
 
 		if curWord != nil {
 			curWord.count++
 		} else {
-			tree.words[newByte] = &word{newByte, 1, nil}
+			tree.Words[newByte] = &word{newByte, 1, nil}
 		}
 	}
 
@@ -49,7 +49,7 @@ func (tree *Tree) countWords(reader *bufio.Reader) error {
 func (tree *Tree) pushInitialNodes() {
 	var words []*word
 
-	for _, word := range tree.words {
+	for _, word := range tree.Words {
 		if word != nil {
 			words = append(words, word)
 		}

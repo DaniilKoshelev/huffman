@@ -9,7 +9,7 @@ import (
 const maxWords = 255
 
 type Tree struct {
-	words [maxWords]*word
+	Words [maxWords]*word
 	nodes *list.List
 }
 
@@ -22,7 +22,7 @@ func newTree() *Tree {
 
 func (tree *Tree) buildTree() {
 	root := tree.nodes.Front().Value
-	code := bitsbuffer.NewBuffer()
+	code := bitsbuffer.NewEmptyBuffer()
 
 	rootAbstract, ok := tree.nodes.Front().Value.(*abstractNode)
 
@@ -63,7 +63,7 @@ func (tree *Tree) Pack() (*bytes.Buffer, *bitsbuffer.Buffer) {
 	root := tree.nodes.Front().Value
 	packedTree := new(bytes.Buffer)
 	rootAbstract, ok := tree.nodes.Front().Value.(*abstractNode)
-	buffer := bitsbuffer.NewFlushableBuffer(packedTree)
+	buffer := bitsbuffer.NewEmptyFlushableBuffer(packedTree)
 
 	if !ok {
 		buffer.AddOne()
@@ -85,20 +85,19 @@ func (tree *Tree) packFromNode(node node, buffer *bitsbuffer.Buffer) {
 		return
 	}
 
+	buffer.AddZero()
 	left := node.(*abstractNode).left
 	right := node.(*abstractNode).right
 
 	if left != nil {
-		buffer.AddZero()
 		tree.packFromNode(left, buffer)
 	}
 
 	if right != nil {
-		buffer.AddZero()
 		tree.packFromNode(right, buffer)
 	}
 }
 
 func (tree *Tree) GetCode(byteForWord byte) *bitsbuffer.Buffer {
-	return tree.words[byteForWord].code
+	return tree.Words[byteForWord].code
 }

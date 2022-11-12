@@ -24,7 +24,7 @@ func TestTreeCreate(t *testing.T) {
 		bufferedReader := bufio.NewReader(reader)
 		createdTree, _ := Create(bufferedReader)
 
-		for encoderByte, encoderWord := range createdTree.words {
+		for encoderByte, encoderWord := range createdTree.Words {
 			if encoderWord == nil {
 				continue
 			}

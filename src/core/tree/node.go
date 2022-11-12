@@ -48,3 +48,11 @@ func (node *initialNode) getCount() int64 {
 func (node *abstractNode) getCount() int64 {
 	return node.count
 }
+
+func (word *word) Length() int8 {
+	return word.code.Length()
+}
+
+func (word *word) Count() int64 {
+	return word.count
+}
