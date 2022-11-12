@@ -2,6 +2,7 @@ package flow
 
 import (
 	"huffman/src/core"
+	"huffman/src/core/bitsbuffer"
 	"huffman/src/processors"
 )
 
@@ -101,19 +102,18 @@ func (flow *Flow) startDecode() error {
 		return err
 	}
 
-	err = decoder.Init(flow.inputFileProcessor.Reader)
+	inputFileBuffer := bitsbuffer.NewEmptyBuffer().SetIoReader(flow.inputFileProcessor.Reader)
+	err = decoder.Init(inputFileBuffer)
 
 	if err != nil {
 		return err
 	}
 
-	err = flow.inputFileProcessor.ResetCursor()
-
 	if err != nil {
 		return err
 	}
 
-	err = decoder.Decode(flow.inputFileProcessor.Reader, flow.outputFileProcessor.Writer)
+	err = decoder.Decode(inputFileBuffer, flow.outputFileProcessor.Writer)
 
 	if err != nil {
 		return err

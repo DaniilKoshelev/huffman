@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"huffman/src/core/bitsbuffer"
 	"huffman/src/core/tree"
+	"io"
 )
 
 type Decoder struct {
@@ -16,10 +17,8 @@ func NewDecoder() *Decoder {
 	return &Decoder{}
 }
 
-func (decoder *Decoder) Init(reader *bufio.Reader) error {
-	fileBuffer := bitsbuffer.NewEmptyBuffer().SetIoReader(reader)
-
-	uniqueWords, err := reader.ReadByte()
+func (decoder *Decoder) Init(fileBuffer *bitsbuffer.Buffer) error {
+	uniqueWords, err := fileBuffer.ReadByte()
 
 	if err != nil {
 		return err
@@ -27,7 +26,7 @@ func (decoder *Decoder) Init(reader *bufio.Reader) error {
 
 	decoder.uniqueWords = uniqueWords
 
-	bitsInLastByte, err := reader.ReadByte()
+	bitsInLastByte, err := fileBuffer.ReadByte()
 
 	if err != nil {
 		return err
@@ -46,7 +45,50 @@ func (decoder *Decoder) Init(reader *bufio.Reader) error {
 	return nil
 }
 
-func (decoder *Decoder) Decode(reader *bufio.Reader, writer *bufio.Writer) error {
-	//TODO: implement
+func (decoder *Decoder) Decode(inputFileBuffer *bitsbuffer.Buffer, writer *bufio.Writer) error {
+	outputFileBuffer := bitsbuffer.NewEmptyFlushableBuffer(writer)
+
+	currentCode := bitsbuffer.NewEmptyBuffer()
+
+	err := inputFileBuffer.Scan()
+
+	if err != nil {
+		return err
+	}
+
+	for inputFileBuffer.Length() > 8 {
+		decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
+	}
+
+	for {
+		err := inputFileBuffer.Scan()
+
+		if err == io.EOF {
+			var i uint8 = 0
+			for ; i < decoder.bitsInLastByte; i++ {
+				decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
+			}
+
+			break
+		}
+
+		for i := 0; i < 8; i++ {
+			decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
+		}
+	}
+
+	outputFileBuffer.Flush()
+
 	return nil
+}
+
+func (decoder *Decoder) processNextBit(inputFileBuffer *bitsbuffer.Buffer, outputFileBuffer *bitsbuffer.Buffer, currentCode *bitsbuffer.Buffer) {
+	bit, _ := inputFileBuffer.ReadBit()
+
+	currentCode.AddBit(bit)
+
+	if word, err := decoder.tree.GetWordByte(currentCode); err == nil {
+		outputFileBuffer.AddByte(word)
+		currentCode.Reset()
+	}
 }

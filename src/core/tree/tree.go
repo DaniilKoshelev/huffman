@@ -3,6 +3,7 @@ package tree
 import (
 	"bytes"
 	"container/list"
+	"errors"
 	"huffman/src/core/bitsbuffer"
 )
 
@@ -10,6 +11,7 @@ const maxWords = 255
 
 type Tree struct {
 	Words            [maxWords]*word
+	Codes            map[int]*word
 	nodes            *list.List
 	nodesCount       uint8
 	alreadyReadNodes uint8
@@ -18,6 +20,7 @@ type Tree struct {
 func newTree() *Tree {
 	tree := new(Tree)
 	tree.nodes = list.New()
+	tree.Codes = make(map[int]*word)
 
 	return tree
 }
@@ -30,7 +33,9 @@ func (tree *Tree) buildTree() {
 
 	if !ok {
 		code.AddZero()
-		root.(*initialNode).getWord().code = code
+		word := root.(*initialNode).getWord()
+		word.code = code
+		tree.Codes[code.ToInt()] = word
 	} else {
 		tree.buildFromNode(rootAbstract, code)
 	}
@@ -40,7 +45,9 @@ func (tree *Tree) buildFromNode(node node, code *bitsbuffer.Buffer) {
 	_, ok := node.(*abstractNode)
 
 	if !ok {
-		node.(*initialNode).getWord().code = code
+		word := node.(*initialNode).getWord()
+		word.code = code
+		tree.Codes[code.ToInt()] = word
 
 		return
 	}
@@ -102,4 +109,12 @@ func (tree *Tree) packFromNode(node node, buffer *bitsbuffer.Buffer) {
 
 func (tree *Tree) GetCode(byteForWord byte) *bitsbuffer.Buffer {
 	return tree.Words[byteForWord].code
+}
+
+func (tree *Tree) GetWordByte(codeForWord *bitsbuffer.Buffer) (byte, error) {
+	if word, ok := tree.Codes[codeForWord.ToInt()]; ok {
+		return word.value, nil
+	}
+
+	return 0, errors.New("error: no word found for given code")
 }

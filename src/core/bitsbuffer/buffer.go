@@ -48,6 +48,10 @@ func NewEmptyBuffer() *Buffer {
 	return buf
 }
 
+func (buf *Buffer) ToInt() int {
+	return int(buf.bits) | int(buf.currentBit)<<16
+}
+
 func From(buffer *Buffer) *Buffer {
 	// TODO: скопировать средствами golang
 	newBuffer := new(Buffer)
@@ -70,18 +74,15 @@ func (buf *Buffer) AddByte(byteToAdd byte) *Buffer {
 }
 
 func (buf *Buffer) AddZero() *Buffer {
-	buf.bits |= 0 << (bufferSize - 1 - buf.currentBit - 1)
-	buf.currentBit++
-
-	if buf.currentBit == bufferSize {
-		buf.flush()
-	}
-
-	return buf
+	return buf.AddBit(0)
 }
 
 func (buf *Buffer) AddOne() *Buffer {
-	buf.bits |= 1 << (bufferSize - 1 - buf.currentBit - 1)
+	return buf.AddBit(1)
+}
+
+func (buf *Buffer) AddBit(bit uint8) *Buffer {
+	buf.bits |= uint16(bit) << (bufferSize - 1 - buf.currentBit - 1)
 	buf.currentBit++
 
 	if buf.currentBit == bufferSize {
@@ -91,7 +92,7 @@ func (buf *Buffer) AddOne() *Buffer {
 	return buf
 }
 
-func (buf *Buffer) reset() *Buffer {
+func (buf *Buffer) Reset() *Buffer {
 	buf.bits = 0
 	buf.currentBit = bufferEmpty
 
@@ -114,11 +115,11 @@ func (buf *Buffer) Flush() *Buffer {
 }
 
 func (flusher *emptyFlusher) flushBuffer() {
-	flusher.buf.reset()
+	//flusher.buf.Reset()
 }
 
 func (flusher *emptyFlusher) flushBufferFinal() {
-	flusher.buf.reset()
+	//flusher.buf.Reset()
 }
 
 func (flusher *ioFlusher) flushBuffer() {
@@ -126,7 +127,7 @@ func (flusher *ioFlusher) flushBuffer() {
 	binary.BigEndian.PutUint16(bytes, flusher.buf.bits)
 	_, _ = flusher.whereToFlush.Write(bytes) // TODO: process error
 
-	flusher.buf.reset()
+	flusher.buf.Reset()
 }
 
 func (flusher *ioFlusher) flushBufferFinal() {
@@ -142,7 +143,7 @@ func (flusher *ioFlusher) flushBufferFinal() {
 		_, _ = flusher.whereToFlush.Write(bytes) // TODO: process error
 	}
 
-	flusher.buf.reset()
+	flusher.buf.Reset()
 }
 
 func (buf *Buffer) AddFromBuffer(anotherBuf *Buffer) *Buffer {
@@ -152,7 +153,7 @@ func (buf *Buffer) AddFromBuffer(anotherBuf *Buffer) *Buffer {
 
 	buf.bits |= l
 
-	if buf.currentBit+1+anotherBuf.currentBit+1 >= bufferSize {
+	if buf.currentBit+1+anotherBuf.currentBit+1 > bufferSize {
 		buf.flush()
 		buf.bits = r
 		buf.currentBit = currentBitBeforeFlush
@@ -235,6 +236,17 @@ func (buf *Buffer) ReadBit() (uint8, error) {
 	buf.currentBit--
 
 	return bit, nil
+}
+
+// Scan TODO: rename (Похоже на костыль)
+func (buf *Buffer) Scan() error {
+	if buf.currentBit <= 7 {
+		err := buf.read()
+
+		return err
+	}
+
+	return errors.New(fmt.Sprintln("error: not enough space in buffer"))
 }
 
 func (buf *Buffer) ReadByte() (uint8, error) {
