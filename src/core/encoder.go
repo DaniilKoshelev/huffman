@@ -3,6 +3,7 @@ package core
 import (
 	"bufio"
 	"errors"
+	"huffman/src/core/bitsbuffer"
 	"huffman/src/core/tree"
 	"io"
 )
@@ -35,6 +36,14 @@ func (encoder *Encoder) Encode(reader *bufio.Reader, writer *bufio.Writer) error
 	packedTree, remainingBuffer := encoder.tree.Pack()
 
 	_, err := writer.Write(packedTree.Bytes())
+	fileBuffer := bitsbuffer.NewFlushableBuffer(writer)
+	fileBuffer.AddFromBuffer(remainingBuffer)
+
+	if err != nil {
+		return err
+	}
+
+	//err = writer.Flush()
 
 	if err != nil {
 		return err
@@ -48,10 +57,10 @@ func (encoder *Encoder) Encode(reader *bufio.Reader, writer *bufio.Writer) error
 		}
 
 		code := encoder.tree.GetCode(newByte)
-		remainingBuffer.AddFromBuffer(code)
+		fileBuffer.AddFromBuffer(code)
 	}
 
-	remainingBuffer.Flush()
+	fileBuffer.Flush()
 
 	return nil
 }

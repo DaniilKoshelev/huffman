@@ -45,15 +45,8 @@ func (processor *FileProcessor) OpenFileToWrite() error {
 		return errors.New("filename is not set")
 	}
 
-	var file *os.File = nil
-	var err error = nil
-
 	//TODO: валидация размера файла
-	if _, err := os.Stat(processor.filename); errors.Is(err, os.ErrNotExist) {
-		file, err = os.Create(processor.filename)
-	} else {
-		file, err = os.Open(processor.filename)
-	}
+	file, err := os.OpenFile(processor.filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
 
 	if err != nil {
 		return err

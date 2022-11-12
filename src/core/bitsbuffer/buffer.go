@@ -93,8 +93,9 @@ func (flusher *emptyFlusher) FlushBuffer() {
 
 func (flusher *ioFlusher) FlushBuffer() {
 	// TODO: !!! ДОБАВИТЬ ПРОВЕРКУ НА CURRENT БИТ, перенести отсюда, должно проверяться только в самом конце (чтобы не писать лишний байт)
+	// не писать пустой бафер
 	bytes := make([]byte, 2)
-	binary.LittleEndian.PutUint16(bytes, flusher.buf.bits)
+	binary.BigEndian.PutUint16(bytes, flusher.buf.bits)
 	_, _ = flusher.whereToFlush.Write(bytes) // TODO: process error
 
 	flusher.buf.reset()
