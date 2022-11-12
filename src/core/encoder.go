@@ -93,7 +93,7 @@ func (encoder *Encoder) calculateMetaParams() {
 		}
 		uniqueWords++
 		lenTotal := int64(word.Length()) * word.Count() % 8
-		bitsInLastByte += lenTotal % 8
+		bitsInLastByte += lenTotal % 8 // Можно не делать %8 каждую итерацию, а только один раз в конце, менее эффективно по памяти
 	}
 
 	treeSizeInBits := uniqueWords*10 - 1
