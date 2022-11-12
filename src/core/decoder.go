@@ -52,11 +52,19 @@ func (decoder *Decoder) Decode(inputFileBuffer *bitsbuffer.Buffer, writer *bufio
 
 	err := inputFileBuffer.Scan()
 
-	if err != nil {
-		return err
+	// TODO: do while
+	if err == io.EOF {
+		var i int8 = 0
+		max := inputFileBuffer.Length() - 8 + int8(decoder.bitsInLastByte)
+		for ; i < max; i++ {
+			decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
+		}
+
+		outputFileBuffer.Flush()
+		return nil
 	}
 
-	for inputFileBuffer.Length() > 8 {
+	for !inputFileBuffer.IsEmpty() {
 		decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
 	}
 
@@ -64,8 +72,9 @@ func (decoder *Decoder) Decode(inputFileBuffer *bitsbuffer.Buffer, writer *bufio
 		err := inputFileBuffer.Scan()
 
 		if err == io.EOF {
-			var i uint8 = 0
-			for ; i < decoder.bitsInLastByte; i++ {
+			var i int8 = 0
+			max := inputFileBuffer.Length() - 8 + int8(decoder.bitsInLastByte)
+			for ; i < max; i++ {
 				decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
 			}
 

@@ -131,7 +131,7 @@ func (flusher *ioFlusher) flushBuffer() {
 }
 
 func (flusher *ioFlusher) flushBufferFinal() {
-	if flusher.buf.isEmpty() {
+	if flusher.buf.IsEmpty() {
 		// do nothing
 	} else if flusher.buf.currentBit <= 7 {
 		byteToWrite := byte(flusher.buf.bits >> 8)
@@ -217,12 +217,12 @@ func newIoFlusher(buf *Buffer, whereToFlush io.Writer) *ioFlusher {
 	return &ioFlusher{buf: buf, whereToFlush: whereToFlush}
 }
 
-func (buf *Buffer) isEmpty() bool {
+func (buf *Buffer) IsEmpty() bool {
 	return buf.currentBit == bufferEmpty
 }
 
 func (buf *Buffer) ReadBit() (uint8, error) {
-	if buf.isEmpty() {
+	if buf.IsEmpty() {
 		err := buf.read()
 
 		if err != nil {
@@ -250,7 +250,7 @@ func (buf *Buffer) Scan() error {
 }
 
 func (buf *Buffer) ReadByte() (uint8, error) {
-	if buf.isEmpty() || buf.currentBit < 7 {
+	if buf.IsEmpty() || buf.currentBit < 7 {
 		err := buf.read()
 
 		if err != nil {
