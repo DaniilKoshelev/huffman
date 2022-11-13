@@ -9,7 +9,7 @@ import (
 
 type Decoder struct {
 	tree           *tree.Tree
-	uniqueWords    uint8
+	uniqueWords    uint16
 	bitsInLastByte uint8
 }
 
@@ -18,10 +18,16 @@ func NewDecoder() *Decoder {
 }
 
 func (decoder *Decoder) Init(fileBuffer *bitsbuffer.Buffer) error {
-	uniqueWords, err := fileBuffer.ReadByte()
+	uniqueWordsByte, err := fileBuffer.ReadByte()
 
 	if err != nil {
 		return err
+	}
+
+	var uniqueWords = uint16(uniqueWordsByte)
+
+	if uniqueWords == 0 {
+		uniqueWords = 256
 	}
 
 	decoder.uniqueWords = uniqueWords

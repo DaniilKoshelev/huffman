@@ -13,8 +13,8 @@ type Tree struct {
 	Words            [maxWords]*word
 	Codes            map[string]*word
 	nodes            *list.List
-	nodesCount       uint8
-	alreadyReadNodes uint8
+	nodesCount       uint16
+	alreadyReadNodes uint16
 }
 
 func newTree() *Tree {

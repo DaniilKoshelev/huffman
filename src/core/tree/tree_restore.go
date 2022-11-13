@@ -5,7 +5,7 @@ import (
 	"huffman/src/core/bitsbuffer"
 )
 
-func Restore(buffer *bitsbuffer.Buffer, nodesCount uint8) (*Tree, error) {
+func Restore(buffer *bitsbuffer.Buffer, nodesCount uint16) (*Tree, error) {
 	tree := newTree()
 	tree.nodesCount = nodesCount
 

@@ -85,7 +85,7 @@ func (encoder *Encoder) Encode(reader *bufio.Reader, writer *bufio.Writer) error
 // Считаем кол-во используемых бит под данные в последнем байте файла (сумма всего файла до этого % 8)
 func (encoder *Encoder) calculateMetaParams() {
 	var bitsInLastByte int64
-	var uniqueWords uint8
+	var uniqueWords uint16
 
 	for _, word := range encoder.tree.Words {
 		if word == nil {
@@ -100,5 +100,11 @@ func (encoder *Encoder) calculateMetaParams() {
 	bitsInLastByte = (bitsInLastByte + int64(treeSizeInBits)) % 8
 
 	encoder.bitsInLastByte = uint8(bitsInLastByte)
-	encoder.uniqueWords = uniqueWords
+
+	// TODO: костыль
+	if uniqueWords == 256 {
+		uniqueWords = 0
+	}
+
+	encoder.uniqueWords = uint8(uniqueWords)
 }
