@@ -11,7 +11,7 @@ const maxWords = 255
 
 type Tree struct {
 	Words            [maxWords]*word
-	Codes            map[int]*word
+	Codes            map[string]*word
 	nodes            *list.List
 	nodesCount       uint8
 	alreadyReadNodes uint8
@@ -20,7 +20,7 @@ type Tree struct {
 func newTree() *Tree {
 	tree := new(Tree)
 	tree.nodes = list.New()
-	tree.Codes = make(map[int]*word)
+	tree.Codes = make(map[string]*word)
 
 	return tree
 }
@@ -35,7 +35,7 @@ func (tree *Tree) buildTree() {
 		code.AddZero()
 		word := root.(*initialNode).getWord()
 		word.code = code
-		tree.Codes[code.ToInt()] = word
+		tree.Codes[code.ToString()] = word
 	} else {
 		tree.buildFromNode(rootAbstract, code)
 	}
@@ -47,7 +47,7 @@ func (tree *Tree) buildFromNode(node node, code *bitsbuffer.Buffer) {
 	if !ok {
 		word := node.(*initialNode).getWord()
 		word.code = code
-		tree.Codes[code.ToInt()] = word
+		tree.Codes[code.ToString()] = word
 
 		return
 	}
@@ -112,7 +112,7 @@ func (tree *Tree) GetCode(byteForWord byte) *bitsbuffer.Buffer {
 }
 
 func (tree *Tree) GetWordByte(codeForWord *bitsbuffer.Buffer) (byte, error) {
-	if word, ok := tree.Codes[codeForWord.ToInt()]; ok {
+	if word, ok := tree.Codes[codeForWord.ToString()]; ok {
 		return word.value, nil
 	}
 

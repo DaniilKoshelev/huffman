@@ -5,19 +5,20 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 )
 
-const bufferSize = 16
+const bufferSize = 64
 const bufferEmpty = -1
 
 type Buffer struct {
 	currentBit int8
-	bits       uint16
+	bits       uint64
 	flusher
 	reader
 }
 
-func (buf *Buffer) Bits() uint16 {
+func (buf *Buffer) Bits() uint64 {
 	return buf.bits
 }
 
@@ -34,7 +35,7 @@ func NewEmptyFlushableBuffer(whereToFlush io.Writer) *Buffer {
 	return buf
 }
 
-func NewBuffer(currentBit int8, bits uint16) *Buffer {
+func NewBuffer(currentBit int8, bits uint64) *Buffer {
 	buf := &Buffer{currentBit: currentBit, bits: bits}
 	buf.flusher = newEmptyFlusher(buf)
 
@@ -48,8 +49,8 @@ func NewEmptyBuffer() *Buffer {
 	return buf
 }
 
-func (buf *Buffer) ToInt() int {
-	return int(buf.bits) | int(buf.currentBit)<<16
+func (buf *Buffer) ToString() string {
+	return fmt.Sprintf("%d_%d", buf.bits, buf.currentBit)
 }
 
 func From(buffer *Buffer) *Buffer {
@@ -66,7 +67,7 @@ func From(buffer *Buffer) *Buffer {
 func (buf *Buffer) AddByte(byteToAdd byte) *Buffer {
 	newBuf := NewEmptyBuffer()
 	newBuf.currentBit = 7
-	newBuf.bits = uint16(byteToAdd) << 8
+	newBuf.bits = uint64(byteToAdd) << 56
 
 	buf.AddFromBuffer(newBuf)
 
@@ -86,7 +87,7 @@ func (buf *Buffer) AddBit(bit uint8) *Buffer {
 		buf.flush()
 	}
 
-	buf.bits |= uint16(bit) << (bufferSize - 1 - buf.currentBit - 1)
+	buf.bits |= uint64(bit) << (bufferSize - 1 - buf.currentBit - 1)
 	buf.currentBit++
 
 	return buf
@@ -123,8 +124,8 @@ func (flusher *emptyFlusher) flushBufferFinal() {
 }
 
 func (flusher *ioFlusher) flushBuffer() {
-	bytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(bytes, flusher.buf.bits)
+	bytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(bytes, flusher.buf.bits)
 	_, _ = flusher.whereToFlush.Write(bytes) // TODO: process error
 
 	flusher.buf.Reset()
@@ -138,8 +139,11 @@ func (flusher *ioFlusher) flushBufferFinal() {
 		bytes := []byte{byteToWrite}
 		_, _ = flusher.whereToFlush.Write(bytes) // TODO: process error
 	} else {
-		bytes := make([]byte, 2)
-		binary.BigEndian.PutUint16(bytes, flusher.buf.bits)
+		bytesAmount := int(math.Ceil(float64(flusher.buf.currentBit) / 8.0))
+		var bytes []byte
+		for i := 0; i < bytesAmount; i++ {
+			bytes = append(bytes, byte(flusher.buf.bits>>(8*(7-uint64(i)))))
+		}
 		_, _ = flusher.whereToFlush.Write(bytes) // TODO: process error
 	}
 
@@ -230,7 +234,7 @@ func (buf *Buffer) ReadBit() (uint8, error) {
 		}
 	}
 
-	bit := uint8((buf.bits >> 15) & 1)
+	bit := uint8((buf.bits >> 63) & 1)
 
 	buf.bits <<= 1
 	buf.currentBit--
@@ -258,7 +262,7 @@ func (buf *Buffer) ReadByte() (uint8, error) {
 		}
 	}
 
-	byteToReturn := uint8(buf.bits >> 8)
+	byteToReturn := uint8(buf.bits >> 56)
 
 	buf.bits <<= 8
 	buf.currentBit -= 8

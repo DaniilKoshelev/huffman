@@ -8,14 +8,14 @@ import (
 
 type buildTreeTest struct {
 	bytes string
-	words map[byte]uint16
+	words map[byte]uint64
 }
 
 var buildTreeTests = []buildTreeTest{
-	{"a", map[byte]uint16{'a': 0}},
-	{"ab", map[byte]uint16{'a': 32768, 'b': 0}},
-	{"abc", map[byte]uint16{'a': 16384, 'b': 0, 'c': 32768}},
-	{"FGGCCCZZZZ", map[byte]uint16{'F': 24576, 'G': 16384, 'C': 0, 'Z': 32768}},
+	{"a", map[byte]uint64{'a': 0}},
+	{"ab", map[byte]uint64{'a': 1 << 63, 'b': 0}},
+	{"abc", map[byte]uint64{'a': 1 << 62, 'b': 0, 'c': 1 << 63}},
+	{"FGGCCCZZZZ", map[byte]uint64{'F': 1<<62 | 1<<61, 'G': 1 << 62, 'C': 0, 'Z': 1 << 63}},
 }
 
 func TestTreeCreate(t *testing.T) {
