@@ -7,7 +7,7 @@ import (
 	"huffman/src/core/bitsbuffer"
 )
 
-const maxWords = 255
+const maxWords = 256
 
 type Tree struct {
 	Words            [maxWords]*word

@@ -13,7 +13,7 @@ const bufferEmpty = -1
 
 type Buffer struct {
 	currentBit int8
-	bits       uint64
+	bits       uint64 // бафер должен уметь вмещать до 256 бит, поэтому решение с int64 не самое оптимальное, стоит сделать []byte
 	flusher
 	reader
 }
@@ -131,15 +131,16 @@ func (flusher *ioFlusher) flushBuffer() {
 	flusher.buf.Reset()
 }
 
+//TODO: fix conditions
 func (flusher *ioFlusher) flushBufferFinal() {
 	if flusher.buf.IsEmpty() {
 		// do nothing
 	} else if flusher.buf.currentBit <= 7 {
-		byteToWrite := byte(flusher.buf.bits >> 8)
+		byteToWrite := byte(flusher.buf.bits >> 56)
 		bytes := []byte{byteToWrite}
 		_, _ = flusher.whereToFlush.Write(bytes) // TODO: process error
 	} else {
-		bytesAmount := int(math.Ceil(float64(flusher.buf.currentBit) / 8.0))
+		bytesAmount := int(math.Ceil(float64(flusher.buf.currentBit+1) / 8.0))
 		var bytes []byte
 		for i := 0; i < bytesAmount; i++ {
 			bytes = append(bytes, byte(flusher.buf.bits>>(8*(7-uint64(i)))))
@@ -244,7 +245,7 @@ func (buf *Buffer) ReadBit() (uint8, error) {
 
 // Scan TODO: rename (Похоже на костыль)
 func (buf *Buffer) Scan() error {
-	if buf.currentBit <= 7 {
+	if buf.currentBit <= 55 {
 		err := buf.read()
 
 		return err
@@ -254,7 +255,7 @@ func (buf *Buffer) Scan() error {
 }
 
 func (buf *Buffer) ReadByte() (uint8, error) {
-	if buf.IsEmpty() || buf.currentBit < 7 {
+	if buf.IsEmpty() || buf.currentBit < 55 {
 		err := buf.read()
 
 		if err != nil {

@@ -50,22 +50,7 @@ func (decoder *Decoder) Decode(inputFileBuffer *bitsbuffer.Buffer, writer *bufio
 
 	currentCode := bitsbuffer.NewEmptyBuffer()
 
-	err := inputFileBuffer.Scan()
-
-	max := (inputFileBuffer.Length()/8)*8 - (8 - int8(decoder.bitsInLastByte))
-	// TODO: do while
-	if err == io.EOF {
-		var i int8 = 0
-		for ; i < max && !inputFileBuffer.IsEmpty(); i++ {
-			decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
-		}
-
-		outputFileBuffer.Flush()
-		return nil
-	}
-
-	var i int8 = 0
-	for ; i < max && !inputFileBuffer.IsEmpty(); i++ {
+	for inputFileBuffer.Length() > 8 {
 		decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
 	}
 
@@ -74,6 +59,21 @@ func (decoder *Decoder) Decode(inputFileBuffer *bitsbuffer.Buffer, writer *bufio
 
 		if err == io.EOF {
 			var i int8 = 0
+
+			max := inputFileBuffer.Length() - (8 - int8(decoder.bitsInLastByte))
+			for ; i < max && !inputFileBuffer.IsEmpty(); i++ {
+				decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
+			}
+
+			break
+		}
+
+		err = inputFileBuffer.Scan()
+
+		if err == io.EOF {
+			var i int8 = 0
+
+			max := inputFileBuffer.Length() - (8 - int8(decoder.bitsInLastByte))
 			for ; i < max && !inputFileBuffer.IsEmpty(); i++ {
 				decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
 			}
@@ -82,7 +82,7 @@ func (decoder *Decoder) Decode(inputFileBuffer *bitsbuffer.Buffer, writer *bufio
 		}
 
 		var i int8 = 0
-		for ; i < max && !inputFileBuffer.IsEmpty(); i++ {
+		for ; i < 8; i++ {
 			decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
 		}
 	}
