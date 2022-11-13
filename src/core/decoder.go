@@ -38,6 +38,10 @@ func (decoder *Decoder) Init(fileBuffer *bitsbuffer.Buffer) error {
 		return err
 	}
 
+	if bitsInLastByte == 0 {
+		bitsInLastByte = 8
+	}
+
 	decoder.bitsInLastByte = bitsInLastByte
 
 	createdTree, err := tree.Restore(fileBuffer, uniqueWords)
