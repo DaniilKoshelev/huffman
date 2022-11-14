@@ -7,20 +7,20 @@ import (
 	"huffman/src/core/bitsbuffer"
 )
 
-const maxWords = 256
-
 type Tree struct {
-	Words            [maxWords]*word
+	Words            map[uint16]*word
 	Codes            map[string]*word
 	nodes            *list.List
-	nodesCount       uint16
-	alreadyReadNodes uint16
+	nodesCount       uint32
+	alreadyReadNodes uint32
+	HasPadding       uint8 // TODO: убрать из дерева
 }
 
 func newTree() *Tree {
 	tree := new(Tree)
 	tree.nodes = list.New()
 	tree.Codes = make(map[string]*word)
+	tree.Words = make(map[uint16]*word)
 
 	return tree
 }
@@ -47,6 +47,8 @@ func (tree *Tree) buildFromNode(node node, code *bitsbuffer.Buffer) {
 	if !ok {
 		word := node.(*initialNode).getWord()
 		word.code = code
+		lenaa := word.code.Length() // TODO: remove
+		_ = lenaa
 		tree.Codes[code.ToString()] = word
 
 		return
@@ -76,7 +78,8 @@ func (tree *Tree) Pack() (*bytes.Buffer, *bitsbuffer.Buffer) {
 
 	if !ok {
 		buffer.AddOne()
-		buffer.AddByte(root.(*initialNode).getWord().value)
+		buffer.AddUInt16(root.(*initialNode).getWord().value)
+
 	} else {
 		tree.packFromNode(rootAbstract, buffer)
 	}
@@ -89,7 +92,7 @@ func (tree *Tree) packFromNode(node node, buffer *bitsbuffer.Buffer) {
 
 	if !ok {
 		buffer.AddOne()
-		buffer.AddByte(node.(*initialNode).getWord().value)
+		buffer.AddUInt16(node.(*initialNode).getWord().value)
 
 		return
 	}
@@ -107,14 +110,20 @@ func (tree *Tree) packFromNode(node node, buffer *bitsbuffer.Buffer) {
 	}
 }
 
-func (tree *Tree) GetCode(byteForWord byte) *bitsbuffer.Buffer {
+func (tree *Tree) GetCode(byteForWord uint16) *bitsbuffer.Buffer {
 	return tree.Words[byteForWord].code
 }
 
-func (tree *Tree) GetWordByte(codeForWord *bitsbuffer.Buffer) (byte, error) {
+func (tree *Tree) GetWordBytes(codeForWord *bitsbuffer.Buffer) (uint16, error) {
 	if word, ok := tree.Codes[codeForWord.ToString()]; ok {
 		return word.value, nil
 	}
 
 	return 0, errors.New("error: no word found for given code")
+}
+
+func (tree *Tree) SetHasPadding() *Tree {
+	tree.HasPadding = 1
+
+	return tree
 }

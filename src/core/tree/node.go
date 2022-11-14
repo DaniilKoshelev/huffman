@@ -5,7 +5,7 @@ import (
 )
 
 type word struct {
-	value byte
+	value uint16
 	count int64
 	code  *bitsbuffer.Buffer
 }

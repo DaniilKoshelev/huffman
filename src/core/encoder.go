@@ -2,6 +2,7 @@ package core
 
 import (
 	"bufio"
+	"encoding/binary"
 	"errors"
 	"huffman/src/core/bitsbuffer"
 	"huffman/src/core/tree"
@@ -11,7 +12,8 @@ import (
 type Encoder struct {
 	tree           *tree.Tree
 	bitsInLastByte uint8
-	uniqueWords    uint8
+	uniqueWords    uint32
+	hasPadding     uint8
 }
 
 func NewEncoder() *Encoder {
@@ -39,14 +41,22 @@ func (encoder *Encoder) Encode(reader *bufio.Reader, writer *bufio.Writer) error
 
 	encoder.calculateMetaParams()
 
-	_, err := writer.Write(
-		[]byte{
-			encoder.uniqueWords, // 1-й байт - кол-во уникальных символов
+	uniqueWords := make([]byte, 4)
+	binary.LittleEndian.PutUint32(uniqueWords, encoder.uniqueWords)
 
-			// TODO: использовать 3 бита вместо целого байта
-			encoder.bitsInLastByte, // 2-й байт - кол-во полезных бит в последнем байте файла (info: возможно неправильно, придется потом заменить на общее число слов в изаначальном файле)
-		},
-	)
+	_, err := writer.Write(uniqueWords)
+
+	if err != nil {
+		return err
+	}
+
+	err = writer.WriteByte(encoder.bitsInLastByte)
+
+	if err != nil {
+		return err
+	}
+
+	err = writer.WriteByte(encoder.tree.HasPadding)
 
 	if err != nil {
 		return err
@@ -66,13 +76,20 @@ func (encoder *Encoder) Encode(reader *bufio.Reader, writer *bufio.Writer) error
 
 	// Записываем коды в файл
 	for {
-		newByte, err := reader.ReadByte()
+		newByte1, err := reader.ReadByte()
 
 		if err == io.EOF {
 			break
 		}
 
-		code := encoder.tree.GetCode(newByte)
+		newByte2, err := reader.ReadByte()
+
+		if err == io.EOF {
+			newByte2 = 0
+		}
+
+		pair := (uint16(newByte1) << 8) | uint16(newByte2)
+		code := encoder.tree.GetCode(pair)
 		fileBuffer.AddFromBuffer(code)
 	}
 
@@ -85,7 +102,7 @@ func (encoder *Encoder) Encode(reader *bufio.Reader, writer *bufio.Writer) error
 // Считаем кол-во используемых бит под данные в последнем байте файла (сумма всего файла до этого % 8)
 func (encoder *Encoder) calculateMetaParams() {
 	var bitsInLastByte int64
-	var uniqueWords uint16
+	var uniqueWords uint32
 
 	for _, word := range encoder.tree.Words {
 		if word == nil {
@@ -101,12 +118,7 @@ func (encoder *Encoder) calculateMetaParams() {
 
 	encoder.bitsInLastByte = uint8(bitsInLastByte)
 
-	// TODO: костыль
-	if uniqueWords == 256 {
-		uniqueWords = 0
-	}
-
-	encoder.uniqueWords = uint8(uniqueWords)
+	encoder.uniqueWords = uniqueWords
 }
 
 func (encoder *Encoder) GetAverageBitsPerWord() float64 {

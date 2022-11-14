@@ -74,6 +74,16 @@ func (buf *Buffer) AddByte(byteToAdd byte) *Buffer {
 	return buf
 }
 
+func (buf *Buffer) AddUInt16(uint uint16) *Buffer {
+	newBuf := NewEmptyBuffer()
+	newBuf.currentBit = 15
+	newBuf.bits = uint64(uint) << 48
+
+	buf.AddFromBuffer(newBuf)
+
+	return buf
+}
+
 func (buf *Buffer) AddZero() *Buffer {
 	return buf.AddBit(0)
 }

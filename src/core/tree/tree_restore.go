@@ -5,7 +5,7 @@ import (
 	"huffman/src/core/bitsbuffer"
 )
 
-func Restore(buffer *bitsbuffer.Buffer, nodesCount uint16) (*Tree, error) {
+func Restore(buffer *bitsbuffer.Buffer, nodesCount uint32) (*Tree, error) {
 	tree := newTree()
 	tree.nodesCount = nodesCount
 
@@ -48,15 +48,23 @@ func (tree *Tree) extractNode(buffer *bitsbuffer.Buffer) (node, error) {
 	}
 
 	if bit == 1 {
-		newByte, err := buffer.ReadByte()
+		newByte1, err := buffer.ReadByte()
 
 		if err != nil {
 			return nil, errors.New("error: could not read word for initial node")
 		}
 
+		newByte2, err := buffer.ReadByte()
+
+		if err != nil {
+			return nil, errors.New("error: could not read word for initial node")
+		}
+
+		pair := (uint16(newByte1) << 8) | uint16(newByte2)
+
 		tree.alreadyReadNodes++
-		newWord := &word{newByte, 0, nil}
-		tree.Words[newByte] = newWord
+		newWord := &word{pair, 0, nil}
+		tree.Words[pair] = newWord
 
 		newNode := newInitialNode()
 		newNode.setWord(newWord)

@@ -2,6 +2,7 @@ package core
 
 import (
 	"bufio"
+	"encoding/binary"
 	"huffman/src/core/bitsbuffer"
 	"huffman/src/core/tree"
 	"io"
@@ -9,7 +10,7 @@ import (
 
 type Decoder struct {
 	tree           *tree.Tree
-	uniqueWords    uint16
+	uniqueWords    uint32
 	bitsInLastByte uint8
 }
 
@@ -18,21 +19,26 @@ func NewDecoder() *Decoder {
 }
 
 func (decoder *Decoder) Init(fileBuffer *bitsbuffer.Buffer) error {
-	uniqueWordsByte, err := fileBuffer.ReadByte()
+	byte1, err := fileBuffer.ReadByte()
+	byte2, err := fileBuffer.ReadByte()
+	byte3, err := fileBuffer.ReadByte()
+	byte4, err := fileBuffer.ReadByte()
 
 	if err != nil {
 		return err
 	}
 
-	var uniqueWords = uint16(uniqueWordsByte)
-
-	if uniqueWords == 0 {
-		uniqueWords = 256
-	}
+	var uniqueWords = binary.LittleEndian.Uint32([]byte{byte1, byte2, byte3, byte4})
 
 	decoder.uniqueWords = uniqueWords
 
 	bitsInLastByte, err := fileBuffer.ReadByte()
+
+	if err != nil {
+		return err
+	}
+
+	hasPadding, err := fileBuffer.ReadByte()
 
 	if err != nil {
 		return err
@@ -48,6 +54,10 @@ func (decoder *Decoder) Init(fileBuffer *bitsbuffer.Buffer) error {
 
 	if err != nil {
 		return err
+	}
+
+	if hasPadding == 1 {
+		createdTree.SetHasPadding()
 	}
 
 	decoder.tree = createdTree
@@ -107,8 +117,8 @@ func (decoder *Decoder) processNextBit(inputFileBuffer *bitsbuffer.Buffer, outpu
 
 	currentCode.AddBit(bit)
 
-	if word, err := decoder.tree.GetWordByte(currentCode); err == nil {
-		outputFileBuffer.AddByte(word)
+	if word, err := decoder.tree.GetWordBytes(currentCode); err == nil {
+		outputFileBuffer.AddUInt16(word)
 		currentCode.Reset()
 	}
 }

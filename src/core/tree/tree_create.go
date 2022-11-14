@@ -28,18 +28,26 @@ func (tree *Tree) countWords(reader *bufio.Reader) error {
 	}
 
 	for {
-		newByte, err := reader.ReadByte()
+		newByte1, err := reader.ReadByte()
 
 		if err == io.EOF {
 			break
 		}
 
-		curWord := tree.Words[newByte]
+		newByte2, err := reader.ReadByte()
+
+		if err == io.EOF {
+			newByte2 = 0
+			tree.SetHasPadding()
+		}
+
+		pair := (uint16(newByte1) << 8) | uint16(newByte2)
+		curWord := tree.Words[pair]
 
 		if curWord != nil {
 			curWord.count++
 		} else {
-			tree.Words[newByte] = &word{newByte, 1, nil}
+			tree.Words[pair] = &word{pair, 1, nil}
 		}
 	}
 
