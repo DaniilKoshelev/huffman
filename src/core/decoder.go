@@ -82,7 +82,7 @@ func (decoder *Decoder) Decode(inputFileBuffer *bitsbuffer.Buffer, writer *bufio
 
 			max := inputFileBuffer.Length() - (8 - int8(decoder.bitsInLastByte))
 			for ; i < max && !inputFileBuffer.IsEmpty(); i++ {
-				decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
+				decoder.processNextBitEof(inputFileBuffer, outputFileBuffer, currentCode)
 			}
 
 			break
@@ -95,7 +95,7 @@ func (decoder *Decoder) Decode(inputFileBuffer *bitsbuffer.Buffer, writer *bufio
 
 			max := inputFileBuffer.Length() - (8 - int8(decoder.bitsInLastByte))
 			for ; i < max && !inputFileBuffer.IsEmpty(); i++ {
-				decoder.processNextBit(inputFileBuffer, outputFileBuffer, currentCode)
+				decoder.processNextBitEof(inputFileBuffer, outputFileBuffer, currentCode)
 			}
 
 			break
@@ -110,6 +110,28 @@ func (decoder *Decoder) Decode(inputFileBuffer *bitsbuffer.Buffer, writer *bufio
 	outputFileBuffer.Flush()
 
 	return nil
+}
+
+// TODO: refactoring
+func (decoder *Decoder) processNextBitEof(inputFileBuffer *bitsbuffer.Buffer, outputFileBuffer *bitsbuffer.Buffer, currentCode *bitsbuffer.Buffer) {
+	bit, _ := inputFileBuffer.ReadBit()
+
+	currentCode.AddBit(bit)
+
+	if word, err := decoder.tree.GetWordBytes(currentCode); err == nil {
+		if !inputFileBuffer.IsEmpty() { // тут трабл, буфер может быть не пустой, по другому определять конечный код
+			outputFileBuffer.AddUInt16(word)
+		} else {
+			// last 2 bytes processing
+			if decoder.tree.HasPadding == 1 {
+				withoutPadding := byte(word >> 8)
+				outputFileBuffer.AddByte(withoutPadding)
+			} else {
+				outputFileBuffer.AddUInt16(word)
+			}
+		}
+		currentCode.Reset()
+	}
 }
 
 func (decoder *Decoder) processNextBit(inputFileBuffer *bitsbuffer.Buffer, outputFileBuffer *bitsbuffer.Buffer, currentCode *bitsbuffer.Buffer) {
