@@ -11,8 +11,9 @@ const (
 )
 
 const (
-	modeEncode = "encode"
-	modeDecode = "decode"
+	modeEncode  = "encode"
+	modeDecode  = "decode"
+	modeEntropy = "entropy"
 )
 
 type flags struct {
@@ -64,11 +65,15 @@ func (processor *FlagProcessor) IsDecodeMode() bool {
 	return processor.mode == modeDecode
 }
 
+func (processor *FlagProcessor) IsEntropyMode() bool {
+	return processor.mode == modeEntropy
+}
+
 func (processor *FlagProcessor) validateInput() error {
 	mode := processor.mode
 	InputFilename := processor.InputFilename
 
-	if mode != modeDecode && mode != modeEncode {
+	if mode != modeDecode && mode != modeEncode && mode != modeEntropy {
 		return errors.New(fmt.Sprintf("error: invalid mode - %s\n", mode))
 	}
 

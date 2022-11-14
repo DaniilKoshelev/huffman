@@ -108,3 +108,17 @@ func (encoder *Encoder) calculateMetaParams() {
 
 	encoder.uniqueWords = uint8(uniqueWords)
 }
+
+func (encoder *Encoder) GetAverageBitsPerWord() float64 {
+	var sum float64
+	var count float64
+
+	for _, code := range encoder.tree.Words {
+		if code != nil {
+			sum += float64(code.Length()) * float64(code.Count())
+			count += float64(code.Count())
+		}
+	}
+
+	return sum / count
+}

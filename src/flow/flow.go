@@ -1,8 +1,10 @@
 package flow
 
 import (
+	"fmt"
 	"huffman/src/core"
 	"huffman/src/core/bitsbuffer"
+	"huffman/src/entropy"
 	"huffman/src/processors"
 )
 
@@ -30,6 +32,8 @@ func (flow *Flow) Init() error {
 
 	if flow.IsEncodeMode() {
 		return flow.startEncode()
+	} else if flow.IsEntropyMode() {
+		return flow.startEntropy()
 	}
 
 	return flow.startDecode()
@@ -76,6 +80,8 @@ func (flow *Flow) startEncode() error {
 		return err
 	}
 
+	fmt.Printf("Avg bits per word: %.2f\n", encoder.GetAverageBitsPerWord())
+
 	return nil
 }
 
@@ -118,6 +124,29 @@ func (flow *Flow) startDecode() error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (flow *Flow) startEntropy() error {
+	err := flow.inputFileProcessor.OpenFileToRead()
+
+	if err != nil {
+		return err
+	}
+
+	defer flow.inputFileProcessor.CloseFile() // TODO: fixme
+
+	entropyService := entropy.NewEntropy()
+	entropyService.Init(flow.inputFileProcessor.Reader)
+
+	E := entropyService.CalculateEntropy()
+	E_XY := entropyService.CalculateConditionalEntropy()
+	E_XYY := entropyService.CalculateDoubleConditionalEntropy()
+
+	fmt.Printf("H(X): %.2f\n", E)
+	fmt.Printf("H(X|X): %.2f\n", E_XY)
+	fmt.Printf("H(X|XX): %.2f\n", E_XYY)
 
 	return nil
 }
