@@ -53,6 +53,10 @@ func (buf *Buffer) ToString() string {
 	return fmt.Sprintf("%d_%d", buf.bits, buf.currentBit)
 }
 
+func (buf *Buffer) DropLastBits(bitsToDrop int8) {
+	buf.currentBit -= bitsToDrop
+}
+
 func From(buffer *Buffer) *Buffer {
 	// TODO: скопировать средствами golang
 	newBuffer := new(Buffer)

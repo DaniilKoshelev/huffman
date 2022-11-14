@@ -80,7 +80,9 @@ func (decoder *Decoder) Decode(inputFileBuffer *bitsbuffer.Buffer, writer *bufio
 		if err == io.EOF {
 			var i int8 = 0
 
-			max := inputFileBuffer.Length() - (8 - int8(decoder.bitsInLastByte))
+			extraBits := 8 - int8(decoder.bitsInLastByte)
+			max := inputFileBuffer.Length() - extraBits // TODO: возможно можно убрать
+			inputFileBuffer.DropLastBits(extraBits)
 			for ; i < max && !inputFileBuffer.IsEmpty(); i++ {
 				decoder.processNextBitEof(inputFileBuffer, outputFileBuffer, currentCode)
 			}
@@ -93,7 +95,9 @@ func (decoder *Decoder) Decode(inputFileBuffer *bitsbuffer.Buffer, writer *bufio
 		if err == io.EOF {
 			var i int8 = 0
 
-			max := inputFileBuffer.Length() - (8 - int8(decoder.bitsInLastByte))
+			extraBits := 8 - int8(decoder.bitsInLastByte)
+			max := inputFileBuffer.Length() - extraBits // TODO: возможно можно убрать
+			inputFileBuffer.DropLastBits(extraBits)
 			for ; i < max && !inputFileBuffer.IsEmpty(); i++ {
 				decoder.processNextBitEof(inputFileBuffer, outputFileBuffer, currentCode)
 			}
@@ -119,7 +123,7 @@ func (decoder *Decoder) processNextBitEof(inputFileBuffer *bitsbuffer.Buffer, ou
 	currentCode.AddBit(bit)
 
 	if word, err := decoder.tree.GetWordBytes(currentCode); err == nil {
-		if !inputFileBuffer.IsEmpty() { // тут трабл, буфер может быть не пустой, по другому определять конечный код
+		if !inputFileBuffer.IsEmpty() {
 			outputFileBuffer.AddUInt16(word)
 		} else {
 			// last 2 bytes processing
