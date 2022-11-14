@@ -47,8 +47,6 @@ func (tree *Tree) buildFromNode(node node, code *bitsbuffer.Buffer) {
 	if !ok {
 		word := node.(*initialNode).getWord()
 		word.code = code
-		lenaa := word.code.Length() // TODO: remove
-		_ = lenaa
 		tree.Codes[code.ToString()] = word
 
 		return
